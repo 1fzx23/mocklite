@@ -1,0 +1,9 @@
+{
+  "_status": 400,
+  "_delay_ms": 120,
+  "error": "validation_failed",
+  "fields": {
+    "name":  "required",
+    "email": "invalid"
+  }
+}
