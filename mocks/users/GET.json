@@ -1,0 +1,9 @@
+{
+  "_delay_ms": 80,
+  "users": [
+    {"id": 1, "name": "Alice",  "role": "admin"},
+    {"id": 2, "name": "Bob",    "role": "member"},
+    {"id": 3, "name": "Carol",  "role": "member"}
+  ],
+  "total": 3
+}
