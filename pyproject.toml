@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mocklite"
+version = "1.0.0"
+description = "零配置的本地 API Mock 服务器：把 mocks 目录变成 REST 接口。"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.8"
+keywords = ["mock", "api", "rest", "http", "fixtures", "testing", "productivity"]
+
+[project.scripts]
+mocklite = "mocklite:main"
+
+[project.urls]
+Homepage = "https://github.com/1fzx23/mocklite"
+Issues = "https://github.com/1fzx23/mocklite/issues"
+
+[tool.setuptools]
+py_modules = ["mocklite"]
