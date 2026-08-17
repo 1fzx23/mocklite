@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>mocklite · 零配置的本地 API Mock 服务器</title>
+<style>
+  :root {
+    --bg: #0b0e14;
+    --bg-soft: #11151f;
+    --bg-card: #151b27;
+    --border: #232b3a;
+    --border-soft: #1b2230;
+    --text: #e6edf3;
+    --text-dim: #9aa7b8;
+    --text-faint: #66748a;
+    --accent: #5eead4;     /* teal */
+    --accent-2: #7dd3fc;   /* sky */
+    --green: #4ade80;
+    --orange: #fb923c;
+    --red: #f472b6;
+    --warn: #facc15;
+    --shadow: 0 10px 40px rgba(0,0,0,.45);
+    --mono: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(900px 380px at 70% -10%, rgba(94,234,212,.10), transparent 60%),
+      radial-gradient(700px 360px at -5% 20%, rgba(125,211,252,.07), transparent 55%),
+      var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+  /* ---------- Header ---------- */
+  header.nav {
+    position: sticky; top: 0; z-index: 20;
+    backdrop-filter: blur(10px);
+    background: rgba(11,14,20,.72);
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .3px; }
+  .brand .dot { width: 12px; height: 12px; border-radius: 50%;
+                background: linear-gradient(135deg, var(--accent), var(--accent-2));
+                box-shadow: 0 0 14px rgba(94,234,212,.6); }
+  .brand .ver { color: var(--text-faint); font-weight: 500; font-family: var(--mono); font-size: 12px; }
+  .nav-links { display: flex; gap: 22px; font-size: 14px; color: var(--text-dim); }
+  .nav-links a:hover { color: var(--accent); }
+
+  /* ---------- Hero ---------- */
+  .hero { padding: 92px 0 56px; text-align: center; }
+  .badge-cadence {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 13px; color: var(--accent);
+    border: 1px solid var(--border); background: var(--bg-soft);
+    padding: 6px 14px; border-radius: 999px; margin-bottom: 22px;
+    font-family: var(--mono);
+  }
+  .hero h1 {
+    font-size: clamp(36px, 6vw, 60px); margin: 0 0 14px;
+    font-weight: 800; letter-spacing: -1.2px;
+    background: linear-gradient(120deg, #fff 18%, var(--accent) 60%, var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero p.sub { color: var(--text-dim); font-size: 18px; max-width: 660px; margin: 0 auto 28px; }
+  .install {
+    display: inline-block; margin: 4px 0 18px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 18px;
+    font-family: var(--mono); font-size: 15px;
+  }
+  .install .prompt { color: var(--accent); user-select: none; margin-right: 8px; }
+  .stats { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; margin-top: 26px; }
+  .stat { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 20px; min-width: 130px; }
+  .stat .n { font-size: 22px; font-weight: 800; }
+  .stat .l { font-size: 11px; color: var(--text-faint); font-family: var(--mono); text-transform: uppercase; letter-spacing: 1px; }
+
+  /* ---------- Section ---------- */
+  section { padding: 36px 0; }
+  .sec-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 18px; }
+  .sec-head h2 { font-size: 24px; margin: 0; font-weight: 700; }
+  .sec-head .hint { color: var(--text-faint); font-size: 13px; font-family: var(--mono); }
+  .panel {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 22px;
+  }
+
+  /* ---------- Demo ---------- */
+  .demo { display: grid; grid-template-columns: 320px 1fr; gap: 18px; }
+  @media (max-width: 820px) { .demo { grid-template-columns: 1fr; } }
+  .endpoints { display: flex; flex-direction: column; gap: 8px; }
+  .ep {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg-soft); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 14px; cursor: pointer;
+    transition: border-color .15s, background .15s, transform .12s;
+    font-family: var(--mono); font-size: 13.5px; color: var(--text-dim);
+    text-align: left;
+  }
+  .ep:hover { border-color: var(--accent); color: var(--text); transform: translateX(2px); }
+  .ep.active { background: rgba(94,234,212,.07); border-color: var(--accent); color: var(--text); }
+  .ep .m { display: inline-block; min-width: 56px; padding: 2px 6px; border-radius: 5px;
+            font-size: 11.5px; font-weight: 700; text-align: center; letter-spacing: .5px; }
+  .ep .m.GET { background: rgba(96,165,250,.16); color: #93c5fd; }
+  .ep .m.POST { background: rgba(74,222,128,.16); color: #86efac; }
+  .ep .m.DELETE { background: rgba(248,113,113,.16); color: #fca5a5; }
+  .ep .m.PUT { background: rgba(251,146,60,.16); color: #fdba74; }
+  .ep .m.PATCH { background: rgba(167,139,250,.16); color: #c4b5fd; }
+
+  .resp { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .resp-bar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 14px; background: var(--bg-soft); border: 1px solid var(--border);
+    border-top-left-radius: 10px; border-top-right-radius: 10px;
+    font-family: var(--mono); font-size: 12.5px;
+  }
+  .resp-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .resp-bar .status { padding: 3px 8px; border-radius: 6px; font-weight: 700; }
+  .resp-bar .status.s2 { background: rgba(74,222,128,.16); color: var(--green); }
+  .resp-bar .status.s4 { background: rgba(250,204,21,.16); color: var(--warn); }
+  .resp-bar .status.s5 { background: rgba(248,113,113,.16); color: #fca5a5; }
+  .resp-bar .latency { color: var(--text-faint); }
+  .resp-body {
+    background: #0a0d12; border: 1px solid var(--border); border-bottom-left-radius: 10px; border-bottom-right-radius: 10px;
+    border-top: none; padding: 14px 16px;
+    font-family: var(--mono); font-size: 13.5px; white-space: pre-wrap; word-break: break-word; color: #c9d1d9;
+    overflow: auto; max-height: 360px;
+  }
+  .resp-body .key { color: var(--accent-2); }
+  .resp-body .str { color: #a5d6ff; }
+  .resp-body .num { color: #f97583; }
+  .resp-body .bool { color: #d2a8ff; }
+  .resp-body .null { color: var(--text-faint); }
+  .resp-body .punct { color: #8b949e; }
+
+  /* ---------- Convention ---------- */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 720px) { .two-col { grid-template-columns: 1fr; } }
+  .code {
+    background: #0a0d12; border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; font-family: var(--mono); font-size: 13.5px;
+    line-height: 1.7; color: #c9d1d9; overflow: auto;
+  }
+  .code .comment { color: #6e7681; }
+  .code .dir { color: var(--accent); font-weight: 700; }
+  .code .str { color: #a5d6ff; }
+  .code .key { color: var(--accent-2); }
+  .code .num { color: #f97583; }
+  .code .method { color: #d2a8ff; font-weight: 700; }
+
+  /* ---------- Features ---------- */
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  .feat { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+  .feat .ic { font-size: 22px; margin-bottom: 4px; }
+  .feat h3 { margin: 4px 0 6px; font-size: 15px; font-weight: 700; }
+  .feat p { margin: 0; color: var(--text-dim); font-size: 13.5px; }
+
+  /* ---------- Misc ---------- */
+  pre { margin: 0; }
+  .footer { text-align: center; color: var(--text-faint); font-size: 13px; padding: 30px 0 40px; }
+  .footer a { color: var(--accent); }
+  .kbd {
+    display: inline-block; padding: 1px 6px; border-radius: 4px;
+    background: var(--bg-soft); border: 1px solid var(--border);
+    font-family: var(--mono); font-size: 12px; color: var(--accent);
+  }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <div class="brand">
+      <span class="dot"></span>
+      <span>mocklite</span>
+      <span class="ver">v1.0.0</span>
+    </div>
+    <nav class="nav-links">
+      <a href="#demo">演示</a>
+      <a href="#convention">路由约定</a>
+      <a href="#features">特性</a>
+      <a href="#install">安装</a>
+      <a href="https://github.com/1fzx23/mocklite" target="_blank" rel="noopener">GitHub ↗</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <div class="badge-cadence">🌱 零配置 · 零依赖 · CORS 默认开启</div>
+    <h1>把一个目录，变成 REST API</h1>
+    <p class="sub">
+      <code>mocks/users/GET.json</code> 这种约定就能起一个 <code>GET&nbsp;/users</code>。
+      一行命令跑起来，专治“前端等后端、后端没人对接、空状态没法 demo”。
+    </p>
+
+    <pre class="install"><span class="prompt">$</span>python mocklite.py</pre>
+
+    <div class="stats">
+      <div class="stat"><div class="n">0</div><div class="l">third-party deps</div></div>
+      <div class="stat"><div class="n">1</div><div class="l">file, &lt; 14 KB</div></div>
+      <div class="stat"><div class="n">3.8+</div><div class="l">Python version</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="demo">
+  <div class="wrap">
+    <div class="sec-head"><h2>在浏览器里试一下</h2><span class="hint">// left = endpoint · right = response</span></div>
+
+    <div class="demo">
+      <div class="endpoints" id="endpoints">
+        <!-- 由 JS 注入 -->
+      </div>
+      <div class="resp">
+        <div class="resp-bar">
+          <span class="dot" id="resp-dot"></span>
+          <span id="resp-method" class="m GET" style="background:transparent;color:inherit;">GET</span>
+          <span id="resp-path" style="color:var(--text-dim);"></span>
+          <span style="flex:1"></span>
+          <span class="status" id="resp-status">200</span>
+          <span class="latency" id="resp-latency">— ms</span>
+        </div>
+        <pre class="resp-body" id="resp-body">点击左侧 endpoint 试一下 ↦</pre>
+      </div>
+    </div>
+
+    <p style="color:var(--text-faint);font-size:13px;margin-top:14px;">
+      💡 这个页面内嵌了一份 JS 版 mocklite（同样的 method+path 匹配、同样的 <code>_</code> 指令字段），所以即使你还没装 Python，也能直观感受一次响应的样子。
+      装上 Python 之后，<code class="kbd">python mocklite.py</code> 起的就是真服务。
+    </p>
+  </div>
+</section>
+
+<section id="convention">
+  <div class="wrap">
+    <div class="sec-head"><h2>路由约定</h2><span class="hint">// mocks/ 目录 → 路由表</span></div>
+    <div class="two-col">
+      <div class="panel">
+        <h3 style="margin:0 0 12px;font-size:15px;">📁 目录 ↦ URL</h3>
+        <pre class="code"><span class="comment">mocks/</span>
+├── users/
+│   ├── <span class="method">GET</span>.json          <span class="comment">→  GET    /users</span>
+│   ├── <span class="method">POST</span>.json         <span class="comment">→  POST   /users</span>
+│   └── <span class="str">{id}</span>/
+│       ├── <span class="method">GET</span>.json       <span class="comment">→  GET    /users/{id}</span>
+│       ├── <span class="method">DELETE</span>.json    <span class="comment">→  DELETE /users/{id}</span>
+│       └── orders/
+│           └── <span class="method">GET</span>.json   <span class="comment">→  GET    /users/{id}/orders</span>
+└── posts/
+    ├── <span class="method">GET</span>.json          <span class="comment">→  GET  /posts</span>
+    ├── <span class="method">POST</span>.json         <span class="comment">→  POST /posts</span>
+    └── <span class="str">{postId}</span>/
+        └── comments/
+            └── <span class="method">GET</span>.json  <span class="comment">→  GET /posts/{postId}/comments</span></pre>
+        <p style="color:var(--text-dim);font-size:13.5px;margin:12px 0 0;">
+          规则就是：文件名 <code>&lt;METHOD&gt;.json</code> → 方法；目录名 → URL 段；<code>{xxx}</code> 路径参数。
+        </p>
+      </div>
+
+      <div class="panel">
+        <h3 style="margin:0 0 12px;font-size:15px;">📝 响应模板：以 <code>_</code> 开头的都是指令</h3>
+        <pre class="code">{
+  <span class="dir">"_status"</span>:    <span class="num">201</span>,                  <span class="comment">// 自定义 HTTP 状态码，默认 200</span>
+  <span class="dir">"_headers"</span>:   {<span class="str">"Location"</span>: <span class="str">"/users/42"</span>}, <span class="comment">// 额外响应头</span>
+  <span class="dir">"_delay_ms"</span>:  <span class="num">300</span>,                  <span class="comment">// 延迟多少毫秒再回</span>
+
+  <span class="key">"id"</span>:   <span class="num">42</span>,                       <span class="comment">// ← 实际响应 body</span>
+  <span class="key">"name"</span>: <span class="str">"newbie"</span>
+}</pre>
+        <p style="color:var(--text-dim);font-size:13.5px;margin:12px 0 0;">
+          <code>_status / _headers / _delay_ms</code> 这三个是已知指令，其它任何 <code>_xxx</code> 字段也会被剥掉（保留给将来扩展）。
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <div class="sec-head"><h2>为什么用它</h2><span class="hint">// 8 个常见痛点 & 一个共同答案</span></div>
+    <div class="grid">
+      <div class="feat">
+        <div class="ic">🌱</div><h3>零配置</h3>
+        <p>默认 <code>./mocks</code>、端口 <code>7777</code>，扫一下目录就起服务。</p>
+      </div>
+      <div class="feat">
+        <div class="ic">📦</div><h3>零依赖</h3>
+        <p>只使用 Python 标准库，<code>BaseHTTPRequestHandler</code> + <code>ThreadingHTTPServer</code>。</p>
+      </div>
+      <div class="feat">
+        <div class="ic">🐢</div><h3>延迟注入</h3>
+        <p><code>_delay_ms</code> 让响应变慢；CLI <code>-d</code> 全局再叠加一层。</p>
+      </div>
+      <div class="feat">
+        <div class="ic">💥</div><h3>错误注入</h3>
+        <p><code>_status</code> 模拟 4xx/5xx；<code>_headers</code> 注入自定义响应头。</p>
+      </div>
+      <div class="feat">
+        <div class="ic">🌐</div><h3>CORS 默认开</h3>
+        <p>任意 Origin 放行、OPTIONS 预检直接过 —— 前端 <code>fetch</code> 不用配代理。</p>
+      </div>
+      <div class="feat">
+        <div class="ic">🧬</div><h3>路径参数</h3>
+        <p><code>{id} / {postId}</code> 这种约定就支持任意位置、任意深度的路径参数。</p>
+      </div>
+      <div class="feat">
+        <div class="ic">🧵</div><h3>多线程</h3>
+        <p>每个请求独立线程，并发抓取/批跑不互相阻塞。</p>
+      </div>
+      <div class="feat">
+        <div class="ic">🧪</div><h3>附 6 项 smoke test</h3>
+        <p>子进程启服务 → urllib 验证 → 关服务，全程零额外依赖。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="install">
+  <div class="wrap">
+    <div class="sec-head"><h2>安装与使用</h2><span class="hint">// 三种姿势</span></div>
+    <div class="panel">
+      <pre class="code"><span class="comment"># 方式 1：直接下载单文件（推荐，本工具就一个 .py）</span>
+curl -O https://raw.githubusercontent.com/1fzx23/mocklite/main/mocklite.py
+python mocklite.py --help
+
+<span class="comment"># 方式 2：克隆仓库（自带示例 fixtures）</span>
+git clone https://github.com/1fzx23/mocklite.git
+cd mocklite
+python mocklite.py
+
+<span class="comment"># 方式 3：pip install（会注册一个 mocklite 命令）</span>
+pip install .
+mocklite</pre>
+      <pre class="code" style="margin-top:14px;"><span class="comment"># 指定 mocks 目录 + 端口 + 全局 100ms 延迟</span>
+python mocklite.py ./fixtures -p 8080 -d 100
+
+<span class="comment"># 想让同事也能访问，绑定到 0.0.0.0</span>
+python mocklite.py ./mocks --host 0.0.0.0 -p 9000</pre>
+    </div>
+  </div>
+</section>
+
+<div class="footer">
+  MIT © <a href="https://github.com/1fzx23">1fzx23</a> ·
+  <a href="https://github.com/1fzx23/mocklite">仓库</a> ·
+  <a href="https://github.com/1fzx23/my-tools">工具箱母页</a> ·
+  与 GitHub Pages 中的部署版本一致
+</div>
+
+<script>
+  // -------------------------------------------------------------------------
+  // 浏览器内“伪 mocklite”：用 JS 重写一遍核心逻辑
+  //   - 路由表：method + pattern (含 {xxx} 段)
+  //   - 响应：fixture = { status, headers, delay_ms, body }（这里已剥好）
+  // 这样即使没装 Python，也能直观看到“点 endpoint → 看响应”长什么样。
+  // -------------------------------------------------------------------------
+  const ROUTES = [
+    {
+      method: 'GET',
+      path: '/users',
+      fixture: {
+        _delay_ms: 80,
+        _note: 'list 三个用户，全局没有 status 注入所以默认 200',
+        users: [
+          { id: 1, name: 'Alice', role: 'admin' },
+          { id: 2, name: 'Bob',   role: 'member' },
+          { id: 3, name: 'Carol', role: 'member' }
+        ],
+        total: 3
+      }
+    },
+    {
+      method: 'POST',
+      path: '/users',
+      fixture: {
+        _status: 201,
+        _headers: { 'Location': '/users/42' },
+        id: 42, name: 'newbie', created_at: '2026-08-17T08:00:00Z'
+      }
+    },
+    {
+      method: 'GET',
+      path: '/users/{id}',
+      fixture: {
+        _delay_ms: 60,
+        _note: '路径参数 {id} 被匹配掉，仅用作模式，不注入到 body',
+        id: 0, name: 'user #0', email: 'user0@example.com'
+      }
+    },
+    {
+      method: 'DELETE',
+      path: '/users/{id}',
+      fixture: { _status: 204, _note: '204 不会发 body' }
+    },
+    {
+      method: 'POST',
+      path: '/posts',
+      fixture: {
+        _status: 400,
+        _delay_ms: 120,
+        error: 'validation_failed',
+        fields: { name: 'required', email: 'invalid' }
+      }
+    },
+    {
+      method: 'GET',
+      path: '/posts/{postId}/comments',
+      fixture: {
+        _headers: { 'X-Total-Count': '3' },
+        post_id: 0,
+        comments: [
+          { id: 'c1', author: 'Alice', text: 'hello' },
+          { id: 'c2', author: 'Bob',   text: 'world' }
+        ]
+      }
+    }
+  ];
+
+  const ALL_ENDPOINTS = ROUTES.map(r => ({ method: r.method, path: r.path }));
+
+  // ---------- 核心：参数化匹配 ----------
+  function splitPath(p) {
+    if (!p || p === '/') return [];
+    return p.split('/').filter(Boolean);
+  }
+  function patternMatches(pat, req) {
+    if (pat.length !== req.length) return false;
+    for (let i = 0; i < pat.length; i++) {
+      const p = pat[i], r = req[i];
+      if (p.startsWith('{') && p.endsWith('}') && p.length >= 3) continue;
+      if (p !== r) return false;
+    }
+    return true;
+  }
+
+  // ---------- "响应" 调度 ----------
+  // 复用 ROUTES 的 fixture：当用户点 /users/{id}，模拟 id=42
+  function dispatch(method, path) {
+    const reqParts = splitPath(path);
+    for (const r of ROUTES) {
+      if (r.method !== method) continue;
+      if (patternMatches(splitPath(r.path), reqParts)) {
+        const f = JSON.parse(JSON.stringify(r.fixture));
+        const delay = f._delay_ms || 0;
+        const status = f._status || 200;
+        const headers = Object.assign({}, f._headers || {});
+        delete f._status; delete f._headers; delete f._delay_ms; delete f._note;
+        // body 就是剩下的所有字段（不加 _ 的）
+        const body = Object.fromEntries(Object.entries(f));
+        return Promise.resolve({ status, headers, delay, body });
+      }
+    }
+    return Promise.resolve({
+      status: 404,
+      headers: {},
+      delay: 0,
+      body: {
+        error: 'no_route',
+        method, path,
+        hint: {
+          all_routes: ALL_ENDPOINTS.map(e => `${e.method} ${e.path}`)
+        }
+      }
+    });
+  }
+
+  // ---------- 漂亮的 JSON 高亮 ----------
+  function jsonHighlight(obj) {
+    const json = JSON.stringify(obj, null, 2);
+    return json
+      .replace(/("(?:\\.|[^"\\])*"\s*:)/g, '<span class="key">$1</span>')
+      .replace(/:\s*("(?:\\.|[^"\\])*")/g, ': <span class="str">$1</span>')
+      .replace(/:\s*(-?\d+(?:\.\d+)?)/g, ': <span class="num">$1</span>')
+      .replace(/:\s*(true|false)/g, ': <span class="bool">$1</span>')
+      .replace(/:\s*(null)/g, ': <span class="null">$1</span>')
+      .replace(/([{}\[\],])/g, '<span class="punct">$1</span>');
+  }
+
+  function statusBucket(code) {
+    if (code < 300) return 's2';
+    if (code < 500) return 's4';
+    return 's5';
+  }
+
+  // ---------- 渲染 endpoint 列表 ----------
+  function renderEndpoints() {
+    const root = document.getElementById('endpoints');
+    root.innerHTML = '';
+    ROUTES.forEach((r, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'ep';
+      btn.dataset.idx = idx;
+      btn.innerHTML = `<span class="m ${r.method}">${r.method}</span><span style="flex:1">${r.path}</span>`;
+      btn.addEventListener('click', () => selectEndpoint(idx));
+      root.appendChild(btn);
+    });
+    // 默认选中第一个
+    selectEndpoint(0);
+  }
+
+  function selectEndpoint(idx) {
+    document.querySelectorAll('.ep').forEach((b, i) => {
+      b.classList.toggle('active', i === idx);
+    });
+    const r = ROUTES[idx];
+    fire(r.method, r.path, /*demoId*/ idx === 2 ? 42 : (idx === 4 ? null : null));
+  }
+
+  async function fire(method, path, demoId) {
+    const dot = document.getElementById('resp-dot');
+    const sm = document.getElementById('resp-method');
+    const sp = document.getElementById('resp-path');
+    const ss = document.getElementById('resp-status');
+    const sl = document.getElementById('resp-latency');
+    const sb = document.getElementById('resp-body');
+
+    sm.textContent = method;
+    sm.className = 'm ' + method;
+    sp.textContent = path;
+    ss.textContent = '…';
+    ss.className = 'status';
+    sl.textContent = '… ms';
+    sb.textContent = 'loading…';
+
+    const t0 = performance.now();
+    const r = await dispatch(method, path);
+    const t1 = performance.now();
+
+    // 模拟网络/服务器延迟
+    await new Promise(rs => setTimeout(rs, r.delay));
+
+    dot.style.background = r.status < 300 ? 'var(--green)'
+                          : r.status < 500 ? 'var(--warn)' : 'var(--red)';
+    ss.textContent = r.status;
+    ss.className = 'status ' + statusBucket(r.status);
+    sl.textContent = `${Math.round(t1 - t0 + r.delay)} ms`;
+
+    // 渲染响应头
+    if (Object.keys(r.headers).length) {
+      sb.innerHTML = '<span class="key">_headers</span>:\n' +
+        Object.entries(r.headers).map(([k, v]) => `  <span class="str">${k}</span>: <span class="str">${v}</span>`).join('\n') +
+        '\n\n<span class="key">body</span>:\n' + jsonHighlight(r.body);
+    } else {
+      sb.innerHTML = '<span class="key">body</span>:\n' + (Object.keys(r.body).length ? jsonHighlight(r.body) : '<span class="null">null</span>  <span style="color:var(--text-faint)">// 204 / 304 不发 body</span>');
+    }
+  }
+
+  // 启动
+  renderEndpoints();
+</script>
+</body>
+</html>
