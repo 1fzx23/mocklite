@@ -1,0 +1,7 @@
+{
+  "_delay_ms": 60,
+  "id": 0,
+  "name": "user #0",
+  "email": "user0@example.com",
+  "_comment": "上方的 _comment 字段是 _ 开头的指令，但 _comment 不在已知指令里，会被当成指令字段直接剥掉。"
+}
