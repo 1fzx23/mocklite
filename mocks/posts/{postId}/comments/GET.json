@@ -1,0 +1,8 @@
+{
+  "_headers": {"X-Total-Count": "3"},
+  "post_id": 0,
+  "comments": [
+    {"id": "c1", "author": "Alice", "text": "hello"},
+    {"id": "c2", "author": "Bob",   "text": "world"}
+  ]
+}
