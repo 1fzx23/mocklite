@@ -1,0 +1,7 @@
+{
+  "_status": 201,
+  "_headers": {"Location": "/users/42"},
+  "id": 42,
+  "name": "newbie",
+  "created_at": "2026-08-17T08:00:00Z"
+}
